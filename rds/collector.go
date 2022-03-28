@@ -224,7 +224,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 	if c.logParser != nil {
 		for _, lc := range c.logParser.GetCounters() {
-			ch <- counter(dLogMessages, float64(lc.Messages), string(lc.Level), lc.Hash, lc.Sample)
+			ch <- counter(dLogMessages, float64(lc.Messages), lc.Level.String(), lc.Hash, lc.Sample)
 		}
 	}
 }

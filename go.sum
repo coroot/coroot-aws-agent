@@ -20,8 +20,8 @@ github.com/coroot/coroot-pg-agent v1.0.0 h1:+TrTiJpYkaJJwUwS/L/N75NURofO1kUI/Sgz
 github.com/coroot/coroot-pg-agent v1.0.0/go.mod h1:N3X0m2Z2TXln+7blrGdygPOBERaykKC/4d+nO6RecYE=
 github.com/coroot/logger v1.0.0 h1:n8iNkGk6ete9wp/L49FXsZlNiySuA+IJ7TsTkYkiqPc=
 github.com/coroot/logger v1.0.0/go.mod h1:rEO5EQqDbB4bnCoo5Ot9Dj51Bkl40RUVqB03rba54HE=
-github.com/coroot/logparser v1.0.0 h1:1uB9cMmqHsj7rU4QDtR6IGmMCVdWzX2NlQQDc6Mf6S4=
-github.com/coroot/logparser v1.0.0/go.mod h1:GHsVO1xE8pR5mmu9Eiop9IXHwN/QzNRx1s0fuzVxq7I=
+github.com/coroot/logparser v1.0.4 h1:xp3Tc6/3gVFcm6t9TD/zJrHCCu16e7wA/VnnFLtoseU=
+github.com/coroot/logparser v1.0.4/go.mod h1:GHsVO1xE8pR5mmu9Eiop9IXHwN/QzNRx1s0fuzVxq7I=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

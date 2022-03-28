@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go v1.40.51
 	github.com/coroot/coroot-pg-agent v1.0.0
 	github.com/coroot/logger v1.0.0
-	github.com/coroot/logparser v1.0.0
+	github.com/coroot/logparser v1.0.4
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/prometheus/client_golang v1.11.0
