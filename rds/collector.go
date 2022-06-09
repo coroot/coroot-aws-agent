@@ -56,6 +56,7 @@ type DbCollectorConf struct {
 	QueryTimeout   time.Duration
 
 	LogsScrapeInterval time.Duration
+	DbScrapeInterval   time.Duration
 }
 
 type DbCollector interface {
@@ -123,7 +124,7 @@ func (c *Collector) startDbCollector() {
 		}
 		statementTimeout := int(c.dbConf.QueryTimeout.Milliseconds())
 		dsn := fmt.Sprintf("postgresql://%s@%s/postgres?connect_timeout=%d&statement_timeout=%d", userPass, endpoint, connectTimeout, statementTimeout)
-		if collector, err := postgres.New(dsn, c.logger); err != nil {
+		if collector, err := postgres.New(dsn, c.dbConf.DbScrapeInterval, c.logger); err != nil {
 			c.logger.Warning("failed to init postgres collector:", err)
 		} else {
 			c.logger.Info("started postgres collector:", endpoint)

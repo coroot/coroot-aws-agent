@@ -23,6 +23,7 @@ func main() {
 	rdsDbConnectTimeout := kingpin.Flag("rds-db-connect-timeout", "RDS db connect timeout").Default("1s").Duration()
 	rdsDbQueryTimeout := kingpin.Flag("rds-db-query-timeout", "RDS db query timeout").Default("30s").Duration()
 	rdsLogsScrapeInterval := kingpin.Flag("rds-logs-scrape-interval", "RDS logs scrape interval (0 to disable)").Default("30s").Duration()
+	dbScrapeInterval := kingpin.Flag("db-scrape-interval", "How often to scrape DB system views").Default("30s").Duration()
 	listenAddress := kingpin.Flag("listen-address", `Listen address (env: LISTEN_ADDRESS) - "<ip>:<port>" or ":<port>".`).Envar("LISTEN_ADDRESS").Default("0.0.0.0:80").String()
 	kingpin.HelpFlag.Short('h').Hidden()
 	kingpin.Version(version)
@@ -48,6 +49,7 @@ func main() {
 		QueryTimeout:   *rdsDbQueryTimeout,
 
 		LogsScrapeInterval: *rdsLogsScrapeInterval,
+		DbScrapeInterval:   *dbScrapeInterval,
 	}
 	go rds.NewDiscoverer(reg, awsSession, *rdsDiscoveryInterval, rdsDbConf).Run()
 
