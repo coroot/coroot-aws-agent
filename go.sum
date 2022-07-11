@@ -16,10 +16,8 @@ github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdn
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/cespare/xxhash/v2 v2.1.1 h1:6MnRN8NT7+YBpUIWxHtefFZOKTAPgGjpQSxqLNn0+qY=
 github.com/cespare/xxhash/v2 v2.1.1/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/coroot/coroot-pg-agent v1.0.0 h1:+TrTiJpYkaJJwUwS/L/N75NURofO1kUI/Sgz6+Qti4M=
-github.com/coroot/coroot-pg-agent v1.0.0/go.mod h1:N3X0m2Z2TXln+7blrGdygPOBERaykKC/4d+nO6RecYE=
-github.com/coroot/coroot-pg-agent v1.0.4 h1:hprCVy+fsv3d6w/pNDgTdhQghh36Z1yu7NxTmZfEvPQ=
-github.com/coroot/coroot-pg-agent v1.0.4/go.mod h1:8z3BLlH1tAN3mzKgguLkgznFBetwopHgI5v2snXanOg=
+github.com/coroot/coroot-pg-agent v1.0.5 h1:CzStcnAwtRfnnyrRLxYVnuEqy6LKJRnQwGi/1b9sBf0=
+github.com/coroot/coroot-pg-agent v1.0.5/go.mod h1:8z3BLlH1tAN3mzKgguLkgznFBetwopHgI5v2snXanOg=
 github.com/coroot/logger v1.0.0 h1:n8iNkGk6ete9wp/L49FXsZlNiySuA+IJ7TsTkYkiqPc=
 github.com/coroot/logger v1.0.0/go.mod h1:rEO5EQqDbB4bnCoo5Ot9Dj51Bkl40RUVqB03rba54HE=
 github.com/coroot/logparser v1.0.4 h1:xp3Tc6/3gVFcm6t9TD/zJrHCCu16e7wA/VnnFLtoseU=
