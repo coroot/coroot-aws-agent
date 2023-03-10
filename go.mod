@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/aws/aws-sdk-go v1.40.51
-	github.com/coroot/coroot-pg-agent v1.0.5
+	github.com/coroot/coroot-pg-agent v1.2.1
 	github.com/coroot/logger v1.0.0
 	github.com/coroot/logparser v1.0.4
 	github.com/google/go-cmp v0.5.6 // indirect
