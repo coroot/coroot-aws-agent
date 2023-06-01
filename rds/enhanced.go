@@ -50,6 +50,20 @@ func (c *Collector) collectOsMetrics(ch chan<- prometheus.Metric) {
 		ch <- gauge(dIOawait, ioStat.Await/1000, ioStat.Device)
 		ch <- gauge(dIOutil, ioStat.Util, ioStat.Device)
 	}
+	for _, dIO := range m.DiskIO {
+		if dIO.Device == "" { // Aurora network disk
+			device := "aurora-data"
+			if dIO.ReadIOsPS != nil && dIO.WriteIOsPS != nil {
+				ch <- gauge(dIOps, *dIO.ReadIOsPS, device, "read")
+				ch <- gauge(dIOps, *dIO.WriteIOsPS, device, "write")
+			}
+			if dIO.ReadLatency != nil && dIO.WriteLatency != nil {
+				ch <- gauge(dIOlatency, *dIO.ReadLatency/1000, device, "read")
+				ch <- gauge(dIOlatency, *dIO.WriteLatency/1000, device, "write")
+			}
+		}
+	}
+
 	for _, fsStat := range m.FileSys {
 		ch <- gauge(dFSTotal, float64(fsStat.Total*1000), fsStat.MountPoint)
 		ch <- gauge(dFSUsed, float64(fsStat.Used*1000), fsStat.MountPoint)
@@ -65,6 +79,7 @@ type osMetrics struct {
 	Cpu               cpuUtilization     `json:"cpuUtilization"`
 	Memory            rdsMemory          `json:"memory"`
 	PhysicalDeviceIO  []physicalDeviceIO `json:"physicalDeviceIO"`
+	DiskIO            []auroraDiskIO     `json:"diskIO"`
 	FileSys           []fileSys          `json:"fileSys"`
 	NetworkInterfaces []netInterface     `json:"network"`
 }
@@ -120,6 +135,17 @@ type physicalDeviceIO struct {
 	AvgReqSz    float64 `json:"avgReqSz"`
 	WrqmPS      float64 `json:"wrqmPS"`
 	WriteIOsPS  float64 `json:"writeIOsPS"`
+}
+
+type auroraDiskIO struct {
+	Device          string   `json:"device"`
+	ReadLatency     *float64 `json:"readLatency"`
+	WriteLatency    *float64 `json:"writeLatency"`
+	WriteThroughput *float64 `json:"writeThroughput"`
+	ReadThroughput  *float64 `json:"readThroughput"`
+	ReadIOsPS       *float64 `json:"readIOsPS"`
+	WriteIOsPS      *float64 `json:"writeIOsPS"`
+	DiskQueueDepth  *float64 `json:"diskQueueDepth"`
 }
 
 type fileSys struct {

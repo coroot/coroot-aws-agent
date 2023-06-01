@@ -34,6 +34,7 @@ var (
 	dCpuUsage  = desc("aws_rds_cpu_usage_percent", "The percentage of the CPU spent in each mode", "mode")
 	dIOps      = desc("aws_rds_io_ops_per_second", "The number of I/O transactions per second", "device", "operation")
 	dIObytes   = desc("aws_rds_io_bytes_per_second", "The number of bytes read or written per second", "device", "operation")
+	dIOlatency = desc("aws_rds_io_latency_seconds", "The average elapsed time between the submission of an I/O request and its completion (Amazon Aurora only)", "device", "operation")
 	dIOawait   = desc("aws_rds_io_await_seconds", "The number of seconds required to respond to requests, including queue time and service time", "device")
 	dIOutil    = desc("aws_rds_io_util_percent", "The percentage of CPU time during which requests were issued.", "device")
 	dFSTotal   = desc("aws_rds_fs_total_bytes", "The total number of disk space available for the file system", "mount_point")
@@ -239,6 +240,7 @@ func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- dMemTotal
 	ch <- dMemCached
 	ch <- dMemFree
+	ch <- dIOlatency
 	ch <- dIOps
 	ch <- dIObytes
 	ch <- dIOutil
