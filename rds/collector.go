@@ -22,7 +22,7 @@ import (
 var (
 	dInfo = utils.Desc("aws_rds_info", "RDS instance info",
 		"region", "availability_zone", "endpoint", "ipv4", "port",
-		"engine", "engine_version", "instance_type", "storage_type",
+		"engine", "engine_version", "instance_type", "storage_type", "multi_az",
 		"secondary_availability_zone", "cluster_id", "source_instance_id",
 	)
 	dStatus                      = utils.Desc("aws_rds_status", "Status of the RDS instance", "status")
@@ -183,6 +183,8 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 		aws.StringValue(i.DBInstanceClass),
 		aws.StringValue(i.StorageType),
+
+		strconv.FormatBool(aws.BoolValue(i.MultiAZ)),
 
 		aws.StringValue(i.SecondaryAvailabilityZone),
 
