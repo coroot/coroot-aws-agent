@@ -2,11 +2,11 @@
 
 Coroot-aws-agent is an open-source prometheus exporter that gathers metrics from AWS services.
 
-|Serivce|Description|
-|-|-|
-|RDS for Postgres (including Aurora)|autodiscovery, OS metrics from Enhanced Monitoring, Postgres metrics, metrics from logs|
-|RDS for Mysql (including Aurora)|coming soon|
-|EBS|coming soon|
+| Serivce                             | Description                                                                                 |
+|-------------------------------------|---------------------------------------------------------------------------------------------|
+| RDS for Postgres (including Aurora) | autodiscovery, OS metrics based on Enhanced Monitoring, Postgres metrics, log-based metrics |
+| RDS for Mysql (including Aurora)    | autodiscovery, OS metrics based on Enhanced Monitoring                                      |
+| Elasticache                         | autodiscovery, Redis & Memcached metrics                                                    |
 
 ## Documentation
 
