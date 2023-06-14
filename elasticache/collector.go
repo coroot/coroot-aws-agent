@@ -30,6 +30,7 @@ type Collector struct {
 	metricCollector prometheus.Collector
 	cluster         elasticache.CacheCluster
 	node            elasticache.CacheNode
+	ip              *net.IPAddr
 
 	logger logger.Logger
 }
@@ -44,7 +45,10 @@ func NewCollector(sess *session.Session, cluster *elasticache.CacheCluster, node
 		node:    *node,
 		logger:  logger.NewKlog(aws.StringValue(cluster.CacheClusterId)),
 	}
-
+	var err error
+	if c.ip, err = net.ResolveIPAddr("", aws.StringValue(c.node.Endpoint.Address)); err != nil {
+		return nil, err
+	}
 	c.startMetricCollector()
 	return c, nil
 }
@@ -55,6 +59,12 @@ func (c *Collector) update(cluster *elasticache.CacheCluster, n *elasticache.Cac
 		c.node = *n
 		c.startMetricCollector()
 	}
+	ip, err := net.ResolveIPAddr("", aws.StringValue(c.node.Endpoint.Address))
+	if err != nil {
+		c.logger.Error(err)
+	} else {
+		c.ip = ip
+	}
 	c.cluster = *cluster
 	c.node = *n
 }
@@ -62,7 +72,7 @@ func (c *Collector) update(cluster *elasticache.CacheCluster, n *elasticache.Cac
 func (c *Collector) startMetricCollector() {
 	switch aws.StringValue(c.cluster.Engine) {
 	case "redis":
-		url := fmt.Sprintf("redis://%s:%d", aws.StringValue(c.node.Endpoint.Address), aws.Int64Value(c.node.Endpoint.Port))
+		url := fmt.Sprintf("redis://%s:%d", c.ip.String(), aws.Int64Value(c.node.Endpoint.Port))
 		opts := exporter.Options{
 			Namespace:          "redis",
 			ConfigCommandName:  "CONFIG",
@@ -77,7 +87,7 @@ func (c *Collector) startMetricCollector() {
 			c.metricCollector = collector
 		}
 	case "memcached":
-		address := fmt.Sprintf("%s:%d", aws.StringValue(c.node.Endpoint.Address), aws.Int64Value(c.node.Endpoint.Port))
+		address := fmt.Sprintf("%s:%d", c.ip.String(), aws.Int64Value(c.node.Endpoint.Port))
 		c.metricCollector = mcExporter.New(
 			address,
 			*flags.ElasticacheConnectTimeout,
@@ -93,13 +103,6 @@ func (c *Collector) Close() {}
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 	ch <- utils.Gauge(dStatus, 1, aws.StringValue(c.node.CacheNodeStatus))
 
-	var ip string
-	if a, err := net.ResolveIPAddr("", aws.StringValue(c.node.Endpoint.Address)); err != nil {
-		c.logger.Warning(err)
-	} else {
-		ip = a.String()
-	}
-
 	cluster := aws.StringValue(c.cluster.ReplicationGroupId)
 	if cluster == "" {
 		cluster = aws.StringValue(c.cluster.CacheClusterId)
@@ -109,7 +112,7 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 		aws.StringValue(c.sess.Config.Region),
 		aws.StringValue(c.node.CustomerAvailabilityZone),
 		aws.StringValue(c.node.Endpoint.Address),
-		ip,
+		c.ip.String(),
 		strconv.Itoa(int(aws.Int64Value(c.node.Endpoint.Port))),
 		aws.StringValue(c.cluster.Engine),
 		aws.StringValue(c.cluster.EngineVersion),

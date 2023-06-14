@@ -71,6 +71,7 @@ type Collector struct {
 	sess     *session.Session
 	region   string
 	instance rds.DBInstance
+	ip       *net.IPAddr
 
 	cloudWatchLogsApi *cloudwatchlogs.CloudWatchLogs
 
@@ -90,6 +91,11 @@ func NewCollector(sess *session.Session, i *rds.DBInstance) (*Collector, error) 
 		cloudWatchLogsApi: cloudwatchlogs.New(sess),
 		logger:            logger.NewKlog(aws.StringValue(i.DBInstanceIdentifier)),
 	}
+	var err error
+	c.ip, err = net.ResolveIPAddr("", aws.StringValue(i.Endpoint.Address))
+	if err != nil {
+		return nil, err
+	}
 
 	c.startDbCollector()
 	c.startLogCollector()
@@ -107,6 +113,12 @@ func (c *Collector) update(i *rds.DBInstance) {
 		c.instance = *i
 		c.startDbCollector()
 	}
+	ip, err := net.ResolveIPAddr("", aws.StringValue(i.Endpoint.Address))
+	if err != nil {
+		c.logger.Error(err)
+	} else {
+		c.ip = ip
+	}
 	c.instance = *i
 }
 
@@ -117,7 +129,7 @@ func (c *Collector) startDbCollector() {
 	i := c.instance
 	switch aws.StringValue(i.Engine) {
 	case "postgres", "aurora-postgresql":
-		endpoint := net.JoinHostPort(aws.StringValue(i.Endpoint.Address), strconv.Itoa(int(aws.Int64Value(i.Endpoint.Port))))
+		endpoint := net.JoinHostPort(c.ip.String(), strconv.Itoa(int(aws.Int64Value(i.Endpoint.Port))))
 		userPass := url.UserPassword(*flags.RdsDbUser, *flags.RdsDbPassword)
 		connectTimeout := int((*flags.RdsDbConnectTimeout).Seconds())
 		if connectTimeout < 1 {
@@ -163,19 +175,12 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 	ch <- utils.Gauge(dStatus, 1, aws.StringValue(i.DBInstanceStatus))
 
-	var ip string
-	if a, err := net.ResolveIPAddr("", aws.StringValue(i.Endpoint.Address)); err != nil {
-		c.logger.Warning(err)
-	} else {
-		ip = a.String()
-	}
-
 	ch <- utils.Gauge(dInfo, 1,
 		c.region,
 		aws.StringValue(i.AvailabilityZone),
 
 		aws.StringValue(i.Endpoint.Address),
-		ip,
+		c.ip.String(),
 		strconv.Itoa(int(aws.Int64Value(i.Endpoint.Port))),
 
 		aws.StringValue(i.Engine),
