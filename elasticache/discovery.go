@@ -56,16 +56,43 @@ func (d *Discoverer) refresh(api *elasticache.ElastiCache) error {
 	var clusters []*elasticache.CacheCluster
 	var err error
 
-	input := &elasticache.DescribeCacheClustersInput{}
-	input.ShowCacheNodeInfo = aws.Bool(true)
-
 	for _, v := range []bool{false, true} {
+		input := &elasticache.DescribeCacheClustersInput{}
+		input.ShowCacheNodeInfo = aws.Bool(true)
 		input.ShowCacheClustersNotInReplicationGroups = aws.Bool(v)
-		output, err := api.DescribeCacheClusters(input)
-		if err != nil {
-			return err
+		for {
+			output, err := api.DescribeCacheClusters(input)
+			if err != nil {
+				return err
+			}
+			for _, cluster := range output.CacheClusters {
+				i := &elasticache.ListTagsForResourceInput{ResourceName: cluster.ARN}
+				tags := map[string]string{}
+				o, err := api.ListTagsForResource(i)
+				if err != nil {
+					d.logger.Error(err)
+				} else {
+					for _, t := range o.TagList {
+						tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
+					}
+				}
+				if utils.Filtered(*flags.ElasticacheFilters, tags) {
+					d.logger.Infof(
+						"cluster %s (tags: %s) was skipped according to the tag-based filters: %s",
+						aws.StringValue(cluster.CacheClusterId),
+						tags,
+						*flags.ElasticacheFilters,
+					)
+					continue
+				}
+				clusters = append(clusters, cluster)
+			}
+			if output.Marker != nil {
+				input.SetMarker(aws.StringValue(output.Marker))
+				continue
+			}
+			break
 		}
-		clusters = append(clusters, output.CacheClusters...)
 	}
 
 	actualInstances := map[string]bool{}

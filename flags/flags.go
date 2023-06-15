@@ -12,5 +12,7 @@ var (
 	RdsLogsScrapeInterval     = kingpin.Flag("rds-logs-scrape-interval", "RDS logs scrape interval (0 to disable)").Default("30s").Duration()
 	DbScrapeInterval          = kingpin.Flag("db-scrape-interval", "How often to scrape DB system views").Default("30s").Duration()
 	ElasticacheConnectTimeout = kingpin.Flag("ec-connect-timeout", "Elasticache connect timeout").Default("1s").Duration()
+	ElasticacheFilters        = kingpin.Flag("ec-filter", `a tag_name:tag_value pair for filtering EC instances by their tags while discovery (env: EC_FILTER)`).Envar("EC_FILTER").StringMap()
+	RdsFilters                = kingpin.Flag("rds-filter", `a tag_name:tag_value pair for filtering RDS instances by their tags while discovery (env: RDS_FILTER)`).Envar("RDS_FILTER").StringMap()
 	ListenAddress             = kingpin.Flag("listen-address", `Listen address (env: LISTEN_ADDRESS) - "<ip>:<port>" or ":<port>".`).Envar("LISTEN_ADDRESS").Default("0.0.0.0:80").String()
 )

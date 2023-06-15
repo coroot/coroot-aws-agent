@@ -64,6 +64,20 @@ func (d *Discoverer) refresh(api rdsiface.RDSAPI) error {
 			continue
 		}
 		id := aws.StringValue(dbInstance.DBInstanceIdentifier)
+		input := &rds.ListTagsForResourceInput{ResourceName: dbInstance.DBInstanceArn}
+		tags := map[string]string{}
+		o, err := api.ListTagsForResource(input)
+		if err != nil {
+			d.logger.Error(err)
+		} else {
+			for _, t := range o.TagList {
+				tags[aws.StringValue(t.Key)] = aws.StringValue(t.Value)
+			}
+		}
+		if utils.Filtered(*flags.RdsFilters, tags) {
+			d.logger.Infof("RDS instance %s (tags: %s) was skipped according to the tag-based filters: %s", id, tags, *flags.RdsFilters)
+			continue
+		}
 		actualInstances[id] = true
 		i, ok := d.instances[id]
 		if !ok {
