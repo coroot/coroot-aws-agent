@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/coroot/coroot-aws-agent/elasticache"
 	"github.com/coroot/coroot-aws-agent/flags"
@@ -12,6 +13,7 @@ import (
 	"gopkg.in/alecthomas/kingpin.v2"
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 )
 
 var version = "unknown"
@@ -24,6 +26,13 @@ func main() {
 	log := logger.NewKlog("")
 
 	cfg := aws.NewConfig().WithRegion(*flags.AwsRegion)
+	cfg.Retryer = client.DefaultRetryer{
+		NumMaxRetries:    5,
+		MinRetryDelay:    500 * time.Millisecond,
+		MaxRetryDelay:    10 * time.Second,
+		MinThrottleDelay: 500 * time.Millisecond,
+		MaxThrottleDelay: 10 * time.Second,
+	}
 	awsSession, err := session.NewSession(cfg)
 	if err != nil {
 		log.Error(err)
