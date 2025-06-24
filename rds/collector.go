@@ -68,19 +68,17 @@ type DbCollector interface {
 }
 
 type Collector struct {
-	sess     *session.Session
-	region   string
-	instance rds.DBInstance
-	ip       *net.IPAddr
-
-	cloudWatchLogsApi *cloudwatchlogs.CloudWatchLogs
-
-	dbCollector DbCollector
-
-	logReader *LogReader
-	logParser *logparser.Parser
-
-	logger logger.Logger
+    sess              *session.Session
+    region            string
+    instance          rds.DBInstance
+    ip                *net.IPAddr
+    cloudWatchLogsApi *cloudwatchlogs.CloudWatchLogs
+    dbCollector       DbCollector
+    logReader         *LogReader
+    logParser         *logparser.Parser
+    logger            logger.Logger
+    metricsChan       chan prometheus.Metric
+    done              chan struct{}
 }
 
 func NewCollector(sess *session.Session, i *rds.DBInstance) (*Collector, error) {
@@ -171,71 +169,87 @@ func (c *Collector) Close() {
 }
 
 func (c *Collector) Collect(ch chan<- prometheus.Metric) {
-	i := c.instance
+    c.metricsChan = make(chan prometheus.Metric, 1000)
+    c.done = make(chan struct{})
 
-	ch <- utils.Gauge(dStatus, 1, aws.StringValue(i.DBInstanceStatus))
+    go func() {
+        for metric := range c.metricsChan {
+            ch <- metric
+        }
+        close(c.done)
+    }()
 
-	ch <- utils.Gauge(dInfo, 1,
-		c.region,
-		aws.StringValue(i.AvailabilityZone),
+    var wg sync.WaitGroup
+    wg.Add(3)
 
-		aws.StringValue(i.Endpoint.Address),
-		c.ip.String(),
-		strconv.Itoa(int(aws.Int64Value(i.Endpoint.Port))),
+    go func() {
+        defer wg.Done()
+        c.collectInstanceInfo()
+    }()
 
-		aws.StringValue(i.Engine),
-		aws.StringValue(i.EngineVersion),
+    if aws.Int64Value(c.instance.MonitoringInterval) > 0 && c.instance.DbiResourceId != nil {
+        go func() {
+            defer wg.Done()
+            t := time.Now()
+            c.collectOsMetrics(c.metricsChan)
+            c.logger.Info("os metrics collected in:", time.Since(t))
+        }()
+    } else {
+        wg.Done()
+    }
 
-		aws.StringValue(i.DBInstanceClass),
-		aws.StringValue(i.StorageType),
+    if c.dbCollector != nil {
+        go func() {
+            defer wg.Done()
+            t := time.Now()
+            c.dbCollector.Collect(c.metricsChan)
+            c.logger.Info("db metrics collected in:", time.Since(t))
+        }()
+    } else {
+        wg.Done()
+    }
 
-		strconv.FormatBool(aws.BoolValue(i.MultiAZ)),
+    wg.Wait()
 
-		aws.StringValue(i.SecondaryAvailabilityZone),
+    if c.logParser != nil {
+        for _, lc := range c.logParser.GetCounters() {
+            c.metricsChan <- utils.Counter(dLogMessages, float64(lc.Messages), lc.Level.String(), lc.Hash, lc.Sample)
+        }
+    }
 
-		utils.IdWithRegion(c.region, aws.StringValue(i.DBClusterIdentifier)),
+    close(c.metricsChan)
+    <-c.done
+}
 
-		utils.IdWithRegion(c.region, aws.StringValue(i.ReadReplicaSourceDBInstanceIdentifier)),
-	)
+func (c *Collector) collectInstanceInfo() {
+    i := c.instance
 
-	ch <- utils.Gauge(dAllocatedStorage, float64(aws.Int64Value(i.AllocatedStorage)))
-	ch <- utils.Gauge(dStorageAutoscalingThreshold, float64(aws.Int64Value(i.MaxAllocatedStorage)))
-	ch <- utils.Gauge(dStorageProvisionedIOPs, float64(aws.Int64Value(i.Iops)))
-	ch <- utils.Gauge(dBackupRetentionPeriod, float64(aws.Int64Value(i.BackupRetentionPeriod)))
+    c.metricsChan <- utils.Gauge(dStatus, 1, aws.StringValue(i.DBInstanceStatus))
 
-	for _, r := range i.ReadReplicaDBInstanceIdentifiers {
-		ch <- utils.Gauge(dReadReplicaInfo, float64(1), utils.IdWithRegion(c.region, aws.StringValue(r)))
-	}
+    c.metricsChan <- utils.Gauge(dInfo, 1,
+        c.region,
+        aws.StringValue(i.AvailabilityZone),
+        aws.StringValue(i.Endpoint.Address),
+        c.ip.String(),
+        strconv.Itoa(int(aws.Int64Value(i.Endpoint.Port))),
+        aws.StringValue(i.Engine),
+        aws.StringValue(i.EngineVersion),
+        aws.StringValue(i.DBInstanceClass),
+        aws.StringValue(i.StorageType),
+        strconv.FormatBool(aws.BoolValue(i.MultiAZ)),
+        aws.StringValue(i.SecondaryAvailabilityZone),
+        utils.IdWithRegion(c.region, aws.StringValue(i.DBClusterIdentifier)),
+        utils.IdWithRegion(c.region, aws.StringValue(i.ReadReplicaSourceDBInstanceIdentifier)),
+    )
 
-	wg := sync.WaitGroup{}
+    c.metricsChan <- utils.Gauge(dAllocatedStorage, float64(aws.Int64Value(i.AllocatedStorage)))
+    c.metricsChan <- utils.Gauge(dStorageAutoscalingThreshold, float64(aws.Int64Value(i.MaxAllocatedStorage)))
+    c.metricsChan <- utils.Gauge(dStorageProvisionedIOPs, float64(aws.Int64Value(i.Iops)))
+    c.metricsChan <- utils.Gauge(dBackupRetentionPeriod, float64(aws.Int64Value(i.BackupRetentionPeriod)))
 
-	if aws.Int64Value(c.instance.MonitoringInterval) > 0 && c.instance.DbiResourceId != nil {
-		wg.Add(1)
-		go func() {
-			t := time.Now()
-			c.collectOsMetrics(ch)
-			c.logger.Info("os metrics collected in:", time.Since(t))
-			wg.Done()
-		}()
-	}
-
-	if c.dbCollector != nil {
-		wg.Add(1)
-		go func() {
-			t := time.Now()
-			c.dbCollector.Collect(ch)
-			c.logger.Info("db metrics collected in:", time.Since(t))
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	if c.logParser != nil {
-		for _, lc := range c.logParser.GetCounters() {
-			ch <- utils.Counter(dLogMessages, float64(lc.Messages), lc.Level.String(), lc.Hash, lc.Sample)
-		}
-	}
+    for _, r := range i.ReadReplicaDBInstanceIdentifiers {
+        c.metricsChan <- utils.Gauge(dReadReplicaInfo, float64(1), utils.IdWithRegion(c.region, aws.StringValue(r)))
+    }
 }
 
 func (c *Collector) Describe(ch chan<- *prometheus.Desc) {
