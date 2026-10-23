@@ -53,13 +53,18 @@ func (d *Discoverer) refresh(api rdsiface.RDSAPI) error {
 		d.logger.Info("instances refreshed in:", time.Since(t))
 	}()
 
-	output, err := api.DescribeDBInstances(nil)
+	// Retrieve all pages before updating collectors to preserve them if discovery fails.
+	var dbInstances []*rds.DBInstance
+	err := api.DescribeDBInstancesPages(&rds.DescribeDBInstancesInput{}, func(page *rds.DescribeDBInstancesOutput, _ bool) bool {
+		dbInstances = append(dbInstances, page.DBInstances...)
+		return true
+	})
 	if err != nil {
 		return err
 	}
 
 	actualInstances := map[string]bool{}
-	for _, dbInstance := range output.DBInstances {
+	for _, dbInstance := range dbInstances {
 		if dbInstance.Endpoint == nil {
 			continue
 		}
